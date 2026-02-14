@@ -27,7 +27,7 @@
       place-items:center;
       background: linear-gradient(to bottom, #f2a1b5, #c85a8c);
       font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
-      
+      overflow: hidden;
       position:relative;
     }
 
@@ -36,7 +36,11 @@
     .scene.initial{ opacity:1; transform:scale(1); pointer-events:auto; z-index:3; }
     .scene.initial.hide{ opacity:0; transform:scale(.985); pointer-events:none; }
     .scene.final{ opacity:0; transform:scale(.985); pointer-events:none; z-index:2; }
-    .scene.final.show{ opacity:1; transform:scale(1); pointer-events:auto; z-index:4; }
+    .scene.final.show{ opacity:1; transform:scale(1); pointer-events:auto; z-index:4; 
+     overflow: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: 24px 0; /* para que no quede pegada arriba/abajo */
+    }
 
     h1{
       color:#fff;
@@ -212,6 +216,10 @@
       box-shadow: var(--cardShadow);
       padding: 18px 18px 16px;
       position:relative;
+
+       max-height: calc(100vh - 140px); /* deja espacio para respiración */
+  overflow: auto;
+  -webkit-overflow-scrolling: touch;
     }
     .final-title{
       margin:4px 0 4px;
@@ -325,6 +333,10 @@
       .photo{ aspect-ratio: 1 / 1; }
       .modal-content{ border-radius:16px; }
       .modal-content img{ max-block-size: calc(100vh - 32px - 24px); }
+
+      .final-card{
+    max-height: calc(100vh - 110px);
+  }
     }
   </style>
 </head>
