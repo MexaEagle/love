@@ -1,0 +1,671 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Carta de Amor</title>
+
+  <style>
+    :root{
+      --envelope-color:#d63384;
+      --envelope-light:#f06292;
+      --shadow: rgba(0,0,0,.2);
+
+      --card: rgba(255,255,255,.92);
+      --cardShadow: 0 30px 60px rgba(0,0,0,.25);
+
+      --accent2:#ff5aa0;
+    }
+
+    *{ box-sizing:border-box; }
+    html,body{ height:100%; }
+
+    body{
+      margin:0;
+      height:100vh;
+      display:grid;
+      place-items:center;
+      background: linear-gradient(to bottom, #f2a1b5, #c85a8c);
+      font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+      
+      position:relative;
+    }
+
+    /* ===== escenas ===== */
+    .scene{ position:absolute; inset:0; display:grid; place-items:center; transition: opacity 550ms ease, transform 550ms ease; }
+    .scene.initial{ opacity:1; transform:scale(1); pointer-events:auto; z-index:3; }
+    .scene.initial.hide{ opacity:0; transform:scale(.985); pointer-events:none; }
+    .scene.final{ opacity:0; transform:scale(.985); pointer-events:none; z-index:2; }
+    .scene.final.show{ opacity:1; transform:scale(1); pointer-events:auto; z-index:4; }
+
+    h1{
+      color:#fff;
+      font-size:2.5rem;
+      margin:0 0 40px;
+      text-shadow: 2px 2px 4px var(--shadow);
+      text-align:center;
+      z-index:5;
+    }
+
+    /* ===== constelaciones ===== */
+    canvas#particles{ position:absolute; inset:0; z-index:0; opacity:.55; pointer-events:none; }
+
+    /* ===== lluvia final (detrás) ===== */
+    .rain{ position:absolute; inset:-20px; pointer-events:none; overflow:hidden; z-index:1; }
+    .drop{
+      position:absolute;
+      left: var(--x);
+      top: -90px;
+      font-size: var(--s);
+      opacity: var(--o);
+      filter: drop-shadow(0 12px 18px rgba(0,0,0,.18));
+      animation: fall var(--t) linear forwards;
+    }
+    @keyframes fall{ to{ transform: translateY(calc(100vh + 180px)) rotate(var(--r)); } }
+
+    /* ===== inicio: corazones tipo snow.js ===== */
+    .init-hearts{ position:absolute; inset:-20px; pointer-events:none; overflow:hidden; z-index:2; opacity:.65; }
+    .hflake{
+      position:absolute; left: var(--x); top:-80px;
+      width: var(--s); height: var(--s);
+      opacity: var(--o);
+      filter: drop-shadow(0 10px 14px rgba(0,0,0,.12));
+      animation: heartFall var(--t) linear forwards;
+    }
+    .hflake::before,.hflake::after{
+      content:""; position:absolute; width:50%; height:50%;
+      background: rgba(220,40,70,.92); border-radius:50%; top:18%;
+    }
+    .hflake::before{ left:18%; }
+    .hflake::after{ right:18%; }
+    .hflake .tri{
+      position:absolute; left:50%; top:46%;
+      width:46%; height:46%;
+      background: rgba(220,40,70,.92);
+      transform: translateX(-50%) rotate(45deg);
+      border-radius:18%;
+    }
+    @keyframes heartFall{
+      to{ transform: translateY(calc(100vh + 140px)) translateX(var(--dx)) rotate(var(--r)); }
+    }
+
+    /* ===== layout ===== */
+    .wrap{ display:flex; flex-direction:column; align-items:center; position:relative; z-index:10; }
+
+    /* ===== sobre (base) ===== */
+    .container{ position:relative; width:350px; height:250px; cursor:pointer; }
+
+    .stamp-container{ position:absolute; right:20px; bottom:30px; z-index:6; display:flex; align-items:center; }
+    .mail-lines{
+      width:40px; height:30px; margin-right:5px;
+      background: repeating-linear-gradient(0deg, transparent, transparent 4px, #333 5px, #333 6px);
+      opacity:.6;
+    }
+    .stamp{
+      width:45px; height:55px; background:#fff; border:2px dashed #ccc;
+      display:flex; justify-content:center; align-items:center;
+      box-shadow:2px 2px 5px var(--shadow);
+    }
+    .stamp::after{ content:"❤"; color:#d63384; font-size:20px; }
+
+    .envelope{
+      position:relative; width:100%; height:100%;
+      background-color: var(--envelope-color);
+      border-radius: 0 0 10px 10px;
+      box-shadow: 0 20px 40px var(--shadow);
+      z-index:5;
+    }
+    .envelope::before{
+      content:""; position:absolute; top:0; z-index:4;
+      border-left:175px solid transparent;
+      border-right:175px solid transparent;
+      border-top:130px solid var(--envelope-light);
+      transform-origin: top;
+      transition: transform .6s ease;
+    }
+
+    .envelope-info{
+      position:absolute; bottom:20px; left:20px; z-index:6;
+      color:#fff; font-size:14px; line-height:1.5;
+    }
+
+    .wax-seal{
+      position:absolute; top:110px; left:50%; transform:translateX(-50%);
+      width:60px; height:60px; border-radius:50%;
+      background: radial-gradient(circle, #f06292, #d63384);
+      z-index:7; display:flex; justify-content:center; align-items:center;
+      box-shadow: inset 0 0 10px rgba(0,0,0,.3), 0 4px 8px var(--shadow);
+      transition: opacity .4s;
+    }
+    .wax-seal::after{ content:"❤"; color: rgba(255,255,255,.5); font-size:25px; }
+
+    .letter{
+      position:absolute; top:10px; left:50%; transform:translateX(-50%);
+      width:90%; height:90%;
+      background:#fff; z-index:2;
+      transition: transform .6s ease, height .6s ease;
+      padding:15px; text-align:center;
+      box-shadow: 0 0 15px rgba(0,0,0,.1);
+      border-radius:10px; overflow:hidden;
+    }
+
+    /* ===== grid fotos ===== */
+    .collage{
+      display:grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+      margin: 14px 0 14px;
+    }
+    .photo{
+      width:100%;
+      aspect-ratio: 4 / 3;
+      border-radius: 14px;
+      overflow:hidden;
+      background: rgba(0,0,0,.06);
+      box-shadow: inset 0 0 0 1px rgba(0,0,0,.08);
+      cursor:pointer;
+      position:relative;
+    }
+    .photo img{
+      width:100%;
+      height:100%;
+      object-fit: cover;
+      display:block;
+    }
+    .photo::after{
+      content:"🔍";
+      position:absolute;
+      right:8px; bottom:6px;
+      font-size:14px;
+      opacity:.85;
+      filter: drop-shadow(0 6px 10px rgba(0,0,0,.18));
+      pointer-events:none;
+    }
+
+    .letter h2{ color:#d63384; font-size:1.35rem; margin:10px 0 6px; }
+    .letter p{ font-size:.9rem; color:#444; line-height:1.4; margin:0; }
+    .heart-small{ color:#d63384; margin:8px 0; }
+
+    .btn-action{
+      margin-top:30px;
+      padding:12px 35px;
+      background:#d63384;
+      color:#fff;
+      border:none;
+      border-radius:25px;
+      font-size:1.1rem;
+      box-shadow: 0 5px 15px rgba(214,51,132,.4);
+      cursor:pointer;
+      z-index:10;
+    }
+
+    .container.open .envelope::before{ transform: rotateX(180deg); z-index:1; }
+    .container.open .letter{ transform: translate(-50%, -150px); height:420px; z-index:8; }
+    .container.open .wax-seal{ opacity:0; pointer-events:none; }
+
+    /* ===== escena final tarjeta ===== */
+    .final-wrap{ display:flex; flex-direction:column; align-items:center; position:relative; z-index:10; }
+    .final-card{
+      width: min(560px, 92vw);
+      border-radius: 18px;
+      background: var(--card);
+      box-shadow: var(--cardShadow);
+      padding: 18px 18px 16px;
+      position:relative;
+    }
+    .final-title{
+      margin:4px 0 4px;
+      text-align:center;
+      font-size:28px;
+      color:#c2195e;
+      font-weight:900;
+    }
+    .final-sub{
+      margin:0 0 12px;
+      text-align:center;
+      color:#5b4e57;
+      font-size:13px;
+      opacity:.9;
+    }
+    .final-text{
+      margin:12px 0 0;
+      color:#463a41;
+      line-height:1.5;
+      font-size:13.5px;
+    }
+    .actions{ display:flex; gap:10px; margin-top:14px; }
+    .a-btn{
+      flex:1;
+      border:0;
+      border-radius:12px;
+      padding:10px 12px;
+      font-weight:800;
+      cursor:pointer;
+      background: rgba(255,255,255,.85);
+      color:#7a0f3a;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.75);
+    }
+    .a-btn.primary{
+      background: linear-gradient(90deg, var(--accent2), #ff89c0);
+      color:#fff;
+    }
+
+    /* ===== MODAL (FIX REAL MÓVIL: imagen completa y centrada SIEMPRE) ===== */
+    .modal{
+      position:fixed;
+      inset:0;
+      background: rgba(0,0,0,.55);
+      display:grid;
+      place-items:center;
+      opacity:0;
+      pointer-events:none;
+      transition: opacity 220ms ease;
+      z-index:1000;
+
+      padding:
+        max(16px, env(safe-area-inset-top))
+        max(16px, env(safe-area-inset-right))
+        max(16px, env(safe-area-inset-bottom))
+        max(16px, env(safe-area-inset-left));
+    }
+    .modal.show{ opacity:1; pointer-events:auto; }
+
+    .modal-content{
+      position:relative;
+      width: min(980px, 100%);
+      max-width: 100%;
+      max-height: calc(100vh - 32px);
+      background: rgba(255,255,255,.95);
+      border-radius: 18px;
+      box-shadow: 0 30px 70px rgba(0,0,0,.35);
+      overflow:hidden;
+      padding: 12px;
+      display:grid;
+      place-items:center;
+    }
+
+    /* CLAVE: no forzar 100%/100% (eso causa el desfase que mostraste).
+       max-block-size + auto mantiene la foto completa, vertical u horizontal. */
+    .modal-content img{
+      max-inline-size: 100%;
+      max-block-size: calc(100vh - 32px - 24px);
+      width: auto;
+      height: auto;
+      object-fit: contain;
+      object-position: center;
+      display:block;
+      border-radius: 14px;
+      background:#fff;
+    }
+
+    .close{
+      position:absolute;
+      top: 10px;
+      right: 10px;
+      border:0;
+      width:44px;
+      height:44px;
+      border-radius:14px;
+      cursor:pointer;
+      background: rgba(255,255,255,.90);
+      box-shadow: 0 10px 18px rgba(0,0,0,.22);
+      font-size:18px;
+      font-weight:900;
+      color:#7a0f3a;
+      z-index: 3;
+      display:grid;
+      place-items:center;
+    }
+
+    @media (max-width: 420px){
+      h1{ font-size:2rem; margin-bottom:26px; }
+      .container{ transform: scale(.95); }
+      .final-card{ width: 94vw; }
+      .collage{ grid-template-columns: repeat(2, 1fr); }
+      .photo{ aspect-ratio: 1 / 1; }
+      .modal-content{ border-radius:16px; }
+      .modal-content img{ max-block-size: calc(100vh - 32px - 24px); }
+    }
+  </style>
+</head>
+
+<body>
+  <canvas id="particles"></canvas>
+  <div class="init-hearts" id="initHearts"></div>
+  <div class="rain" id="rain"></div>
+
+  <div class="scene initial" id="sceneInitial">
+    <div class="wrap">
+      <h1>Carta de Amor</h1>
+
+      <div class="container" id="cardContainerInitial" aria-label="Sobre">
+        <div class="letter">
+          <div class="collage" id="gridInitial">
+            <div class="photo" data-src="./img/1.jpeg"><img src="./img/1.jpeg" alt=""></div>
+            <div class="photo" data-src="./img/2.jpeg"><img src="./img/2.jpeg" alt=""></div>
+            <div class="photo" data-src="./img/3.jpeg"><img src="./img/3.jpeg" alt=""></div>
+            <div class="photo" data-src="./img/4.jpeg"><img src="./img/4.jpeg" alt=""></div>
+            <div class="photo" data-src="./img/5.jpeg"><img src="./img/5.jpeg" alt=""></div>
+            <div class="photo" data-src="./img/6.jpeg"><img src="./img/6.jpeg" alt=""></div>
+            <div class="photo" data-src="./img/7.jpeg"><img src="./img/7.jpeg" alt=""></div>
+            <div class="photo" data-src="./img/8.jpeg"><img src="./img/8.jpeg" alt=""></div>
+            <div class="photo" data-src="./img/9.jpeg"><img src="./img/9.jpeg" alt=""></div>
+            <div class="photo" data-src="./img/10.jpeg"><img src="./img/10.jpeg" alt=""></div>
+          </div>
+
+          <h2>Feliz San Valentín</h2>
+          <p>A la persona que ilumina cada día de mi vida...</p>
+          <div class="heart-small">❤</div>
+          <p>Desde el momento que llegaste a mi vida, todo cambió. Cada latido de mi corazón late por ti.</p>
+        </div>
+
+        <div class="envelope">
+          <div class="envelope-info">
+            De: Kodaljfa<br>
+            Para: Kodalfita
+          </div>
+          <div class="stamp-container">
+            <div class="mail-lines"></div>
+            <div class="stamp"></div>
+          </div>
+        </div>
+
+        <div class="wax-seal"></div>
+      </div>
+
+      <button class="btn-action" id="btnOpen">Toca para abrir</button>
+    </div>
+  </div>
+
+  <div class="scene final" id="sceneFinal">
+    <div class="final-wrap">
+      <div class="final-card">
+        <div class="final-title">Feliz San Valentín</div>
+        <div class="final-sub">A la persona que ilumina cada día de mi vida...</div>
+
+        <div class="collage" id="gridFinal">
+          <div class="photo" data-src="./img/1.jpeg"><img src="./img/1.jpeg" alt=""></div>
+          <div class="photo" data-src="./img/2.jpeg"><img src="./img/2.jpeg" alt=""></div>
+          <div class="photo" data-src="./img/3.jpeg"><img src="./img/3.jpeg" alt=""></div>
+          <div class="photo" data-src="./img/4.jpeg"><img src="./img/4.jpeg" alt=""></div>
+          <div class="photo" data-src="./img/5.jpeg"><img src="./img/5.jpeg" alt=""></div>
+          <div class="photo" data-src="./img/6.jpeg"><img src="./img/6.jpeg" alt=""></div>
+          <div class="photo" data-src="./img/7.jpeg"><img src="./img/7.jpeg" alt=""></div>
+          <div class="photo" data-src="./img/8.jpeg"><img src="./img/8.jpeg" alt=""></div>
+          <div class="photo" data-src="./img/9.jpeg"><img src="./img/9.jpeg" alt=""></div>
+          <div class="photo" data-src="./img/10.jpeg"><img src="./img/10.jpeg" alt=""></div>
+        </div>
+
+        <div class="final-text">
+         Este año San Valentín es distinto y se siente diferente. Y no porque sea una fecha especial, sino porque estamos viviendo algo grande juntos.
+
+Quería decirte que, te admiro. De verdad, sé que el embarazo no es fácil. Hay días buenos y otros más pesados, estás cansada, incómoda a veces… y aun así sigues adelante con una fuerza que me deja impresionado.
+
+Me gusta verte sonreir, contenta. Me gusta imaginar lo que viene para los dos. Me hace ilusión pensar que dentro de poco vamos a tener a nuestro Leonardo en brazos y que lo vamos a hacer juntos, como todo lo hacemos.
+
+También quiero que para mí sigues siendo tú. No solo “la futura mamá”. Sigues siendo la mujer que me encanta, que me hace reír, que me aguanta y que elijo cada día.
+
+Te veo transformarte, y no solo en madre. Te veo más fuerte, más consciente y te deseo más que nunca. Porque no eres solo la mujer que amo, eres la mujer que está construyendo nuestra familia.
+
+Gracias por lo que estás haciendo, por tu paciencia, por tu amor, por confiar en mí para vivir esto contigo y por elegirme para formar una familia.
+
+Te amo 💖
+        </div>
+
+        <div class="actions">
+          <button class="a-btn" id="btnBack">Volver</button>
+          <button class="a-btn primary" id="btnMore">Más 💘</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal" id="modal" aria-hidden="true">
+    <div class="modal-content" role="dialog" aria-modal="true" aria-label="Foto">
+      <button class="close" id="closeModal" aria-label="Cerrar">✕</button>
+      <img id="modalImg" alt="Foto ampliada">
+    </div>
+  </div>
+
+  <script>
+    /* ===== partículas (constelaciones) ===== */
+    const canvas = document.getElementById("particles");
+    const ctx = canvas.getContext("2d", { alpha:true });
+
+    let W=0, H=0, DPR=window.devicePixelRatio || 1;
+    function resize(){
+      DPR = window.devicePixelRatio || 1;
+      canvas.width  = Math.floor(window.innerWidth * DPR);
+      canvas.height = Math.floor(window.innerHeight * DPR);
+      canvas.style.width  = window.innerWidth + "px";
+      canvas.style.height = window.innerHeight + "px";
+      W = canvas.width; H = canvas.height;
+    }
+    resize();
+    window.addEventListener("resize", resize);
+
+    const N = 70, LINK_DIST = 140, SPEED = 0.35;
+    const dots = Array.from({length:N}, ()=>({
+      x: Math.random()*W,
+      y: Math.random()*H,
+      vx: (Math.random()*2-1)*SPEED*DPR,
+      vy: (Math.random()*2-1)*SPEED*DPR,
+      r: (Math.random()*1.6+1.2)*DPR
+    }));
+
+    function drawParticles(){
+      ctx.clearRect(0,0,W,H);
+      ctx.lineWidth = 1*DPR;
+
+      for(let i=0;i<N;i++){
+        for(let j=i+1;j<N;j++){
+          const dx = dots[i].x - dots[j].x;
+          const dy = dots[i].y - dots[j].y;
+          const d = Math.hypot(dx,dy);
+          if(d < LINK_DIST*DPR){
+            const a = (1 - d/(LINK_DIST*DPR)) * 0.22;
+            ctx.strokeStyle = `rgba(255,255,255,${a})`;
+            ctx.beginPath();
+            ctx.moveTo(dots[i].x, dots[i].y);
+            ctx.lineTo(dots[j].x, dots[j].y);
+            ctx.stroke();
+          }
+        }
+      }
+
+      for(const p of dots){
+        ctx.fillStyle = "rgba(255,255,255,.90)";
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.r, 0, Math.PI*2);
+        ctx.fill();
+
+        p.x += p.vx; p.y += p.vy;
+        if(p.x < 0) p.x = W; if(p.x > W) p.x = 0;
+        if(p.y < 0) p.y = H; if(p.y > H) p.y = 0;
+      }
+
+      requestAnimationFrame(drawParticles);
+    }
+    drawParticles();
+
+    /* ===== inicio: corazones tipo snow.js ===== */
+    const initHearts = document.getElementById("initHearts");
+    let initTimer = null;
+
+    function spawnHeartFlake(mult=1){
+      for(let k=0;k<mult;k++){
+        const el = document.createElement("div");
+        el.className = "hflake";
+        el.style.setProperty("--x", (Math.random()*window.innerWidth) + "px");
+        el.style.setProperty("--s", (14 + Math.random()*26) + "px");
+        el.style.setProperty("--o", (0.10 + Math.random()*0.22));
+        el.style.setProperty("--t", (6200 + Math.random()*5200) + "ms");
+        el.style.setProperty("--dx", ((Math.random()*2-1)*60) + "px");
+        el.style.setProperty("--r", ((Math.random()*2-1)*180) + "deg");
+
+        const tri = document.createElement("div");
+        tri.className = "tri";
+        el.appendChild(tri);
+
+        initHearts.appendChild(el);
+        el.addEventListener("animationend", ()=> el.remove());
+      }
+    }
+
+    function startInitHearts(){
+      if(initTimer) return;
+      initTimer = setInterval(()=> spawnHeartFlake(2), 700);
+    }
+    function stopInitHearts(){
+      if(initTimer) clearInterval(initTimer);
+      initTimer = null;
+      initHearts.innerHTML = "";
+    }
+    startInitHearts();
+
+    /* ===== lluvia final ===== */
+    const rain = document.getElementById("rain");
+    const emojis = ["💖","🎁","💘","💝","✨"];
+    const rand = (min,max)=> Math.random()*(max-min)+min;
+
+    let rainTimer = null;
+    let rainCountPerTick = 6;
+    let rainTickMs = 270;
+
+    function spawnEmoji(mult=1){
+      for(let j=0;j<mult;j++){
+        const el = document.createElement("div");
+        el.className = "drop";
+        el.textContent = emojis[(Math.random()*emojis.length)|0];
+        el.style.setProperty("--x", rand(0, window.innerWidth) + "px");
+        el.style.setProperty("--s", rand(22, 64) + "px");
+        el.style.setProperty("--o", rand(.50, .88));
+        el.style.setProperty("--t", rand(2600, 5400) + "ms");
+        el.style.setProperty("--r", rand(-360, 360) + "deg");
+        rain.appendChild(el);
+        el.addEventListener("animationend", ()=> el.remove());
+      }
+    }
+    function startRain(){
+      if(rainTimer) return;
+      rainTimer = setInterval(()=> spawnEmoji(rainCountPerTick), rainTickMs);
+    }
+    function stopRain(){
+      if(rainTimer) clearInterval(rainTimer);
+      rainTimer = null;
+      rain.innerHTML = "";
+    }
+
+    /* ===== escenas + modal ===== */
+    const sceneInitial = document.getElementById("sceneInitial");
+    const sceneFinal   = document.getElementById("sceneFinal");
+    const btnOpen = document.getElementById("btnOpen");
+    const btnBack = document.getElementById("btnBack");
+    const btnMore = document.getElementById("btnMore");
+    const cardInitial  = document.getElementById("cardContainerInitial");
+
+    const modal = document.getElementById("modal");
+    const modalImg = document.getElementById("modalImg");
+    const closeModal = document.getElementById("closeModal");
+
+    let opened = false;
+
+    function openFlow(){
+      if(opened) return;
+      opened = true;
+
+      stopInitHearts();
+      cardInitial.classList.add("open");
+
+      const start = performance.now();
+      function burst(now){
+        spawnEmoji(8);
+        if(now - start < 800) requestAnimationFrame(burst);
+      }
+      requestAnimationFrame(burst);
+
+      setTimeout(()=>{
+        sceneInitial.classList.add("hide");
+        sceneFinal.classList.add("show");
+        startRain();
+      }, 850);
+    }
+
+    function resetFlow(){
+      opened = false;
+      stopRain();
+
+      sceneFinal.classList.remove("show");
+      sceneInitial.classList.remove("hide");
+      cardInitial.classList.remove("open");
+
+      closeImage();
+      startInitHearts();
+    }
+
+    btnOpen.addEventListener("click", openFlow);
+    cardInitial.addEventListener("click", (e)=>{
+      const photo = e.target.closest(".photo");
+      if(photo) return;
+      openFlow();
+    });
+    btnBack.addEventListener("click", resetFlow);
+
+    btnMore.addEventListener("click", ()=>{
+      for(let k=0;k<6;k++) setTimeout(()=> spawnEmoji(16), k*120);
+
+      const prevCount = rainCountPerTick;
+      const prevTick  = rainTickMs;
+      rainCountPerTick = 10;
+      rainTickMs = 235;
+
+      if(rainTimer){
+        clearInterval(rainTimer);
+        rainTimer = null;
+        startRain();
+      }
+
+      setTimeout(()=>{
+        rainCountPerTick = prevCount;
+        rainTickMs = prevTick;
+        if(rainTimer){
+          clearInterval(rainTimer);
+          rainTimer = null;
+          startRain();
+        }
+      }, 6000);
+    });
+
+    function openImage(src){
+      modalImg.src = src;
+      modal.classList.add("show");
+      modal.setAttribute("aria-hidden", "false");
+      document.documentElement.style.overflow = "hidden";
+      document.body.style.overflow = "hidden";
+    }
+    function closeImage(){
+      modal.classList.remove("show");
+      modal.setAttribute("aria-hidden", "true");
+      modalImg.src = "";
+      document.documentElement.style.overflow = "";
+      document.body.style.overflow = "";
+    }
+
+    function bindGrid(gridId){
+      const grid = document.getElementById(gridId);
+      grid.addEventListener("click", (e)=>{
+        const cell = e.target.closest(".photo");
+        if(!cell) return;
+        e.stopPropagation();
+        openImage(cell.dataset.src);
+      });
+    }
+    bindGrid("gridInitial");
+    bindGrid("gridFinal");
+
+    closeModal.addEventListener("click", closeImage);
+    modal.addEventListener("click", (e)=>{ if(e.target === modal) closeImage(); });
+    window.addEventListener("keydown", (e)=>{ if(e.key === "Escape") closeImage(); });
+  </script>
+</body>
+</html>
